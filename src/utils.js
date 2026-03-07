@@ -38,29 +38,6 @@ export function hexToRgba( color, opacity ) {
 }
 
 /**
- * Build a noise SVG data URI from intensity and scale values.
- *
- * @param {number} intensity 0-100 (maps to SVG rect opacity 0-1).
- * @param {number} scale     10-200 (divided by 100 for baseFrequency).
- * @return {string} CSS url() value with data URI.
- */
-export function buildNoiseUrl( intensity, scale ) {
-	const opacity = intensity / 100;
-	const baseFrequency = scale / 100;
-
-	const svg =
-		'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
-		'<filter id="n">' +
-		`<feTurbulence type="fractalNoise" baseFrequency="${ baseFrequency }" numOctaves="4" stitchTiles="stitch"/>` +
-		'<feColorMatrix type="saturate" values="0"/>' +
-		'</filter>' +
-		`<rect width="200" height="200" filter="url(#n)" opacity="${ opacity }"/>` +
-		'</svg>';
-
-	return `url("data:image/svg+xml,${ encodeURIComponent( svg ) }")`;
-}
-
-/**
  * Build a CSS custom property object from block attributes.
  *
  * Used in both the editor (wrapperProps style) and could be reused
@@ -80,7 +57,6 @@ export function buildCustomProperties( attributes ) {
 		liquidGlassBlocksBorderRadius,
 		liquidGlassBlocksShadow,
 		liquidGlassBlocksNoiseIntensity,
-		liquidGlassBlocksNoiseScale,
 	} = attributes;
 
 	const props = {
@@ -96,9 +72,8 @@ export function buildCustomProperties( attributes ) {
 	};
 
 	if ( [ 'grain-frost', 'fine-frost' ].includes( liquidGlassBlocksPreset ) ) {
-		props[ '--lgl-noise-url' ] = buildNoiseUrl(
-			liquidGlassBlocksNoiseIntensity ?? 50,
-			liquidGlassBlocksNoiseScale ?? 65
+		props[ '--lgl-noise-opacity' ] = String(
+			( liquidGlassBlocksNoiseIntensity ?? 50 ) / 100
 		);
 	}
 

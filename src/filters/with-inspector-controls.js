@@ -37,7 +37,6 @@ export const withInspectorControls = createHigherOrderComponent(
 				liquidGlassBlocksBorderRadius,
 				liquidGlassBlocksShadow,
 				liquidGlassBlocksNoiseIntensity,
-				liquidGlassBlocksNoiseScale,
 			} = attributes;
 
 			const colors = useSetting( 'color.palette' ) || [];
@@ -232,23 +231,7 @@ export const withInspectorControls = createHigherOrderComponent(
 												step={ 1 }
 											/>
 
-											<RangeControl
-												__nextHasNoMarginBottom
-												label="Noise Scale"
-												value={
-													liquidGlassBlocksNoiseScale ?? 65
-												}
-												onChange={ ( v ) =>
-													setAttributes( {
-														liquidGlassBlocksNoiseScale:
-															v,
-													} )
-												}
-												min={ 10 }
-												max={ 200 }
-												step={ 5 }
-											/>
-										</>
+											</>
 									) }
 								</>
 							) }

@@ -34,34 +34,6 @@ function lgl_hex_to_rgba( $hex, $opacity ) {
 }
 
 /**
- * Build a noise SVG data URI.
- *
- * Mirrors the JS buildNoiseUrl() in src/utils.js.
- *
- * @param int|float $intensity 0-100.
- * @param int|float $scale     10-200.
- * @return string CSS url() value.
- */
-function lgl_build_noise_url( $intensity, $scale ) {
-	$opacity        = round( $intensity / 100, 4 );
-	$base_frequency = round( $scale / 100, 4 );
-
-	$svg = sprintf(
-		'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">'
-		. '<filter id="n">'
-		. '<feTurbulence type="fractalNoise" baseFrequency="%s" numOctaves="4" stitchTiles="stitch"/>'
-		. '<feColorMatrix type="saturate" values="0"/>'
-		. '</filter>'
-		. '<rect width="200" height="200" filter="url(#n)" opacity="%s"/>'
-		. '</svg>',
-		$base_frequency,
-		$opacity
-	);
-
-	return 'url("data:image/svg+xml,' . rawurlencode( $svg ) . '")';
-}
-
-/**
  * Print the inline SVG refraction filter once per page load.
  *
  * The SVG filter must live in the DOM — `backdrop-filter: url(#id)` only
@@ -104,6 +76,18 @@ function lgl_print_svg_filter() {
 		. '<feBlend in="r-shifted" in2="g-channel" mode="screen" result="rg"/>'
 		. '<feBlend in="rg" in2="b-shifted" mode="screen"/>'
 		. '</filter>'
+		. '<filter id="lgl-noise-grain" x="0%" y="0%" width="100%" height="100%"'
+		. ' color-interpolation-filters="sRGB">'
+		. '<feTurbulence type="fractalNoise" baseFrequency="0.65"'
+		. ' numOctaves="4" stitchTiles="stitch"/>'
+		. '<feColorMatrix type="saturate" values="0"/>'
+		. '</filter>'
+		. '<filter id="lgl-noise-fine" x="0%" y="0%" width="100%" height="100%"'
+		. ' color-interpolation-filters="sRGB">'
+		. '<feTurbulence type="fractalNoise" baseFrequency="1.2"'
+		. ' numOctaves="4" stitchTiles="stitch"/>'
+		. '<feColorMatrix type="saturate" values="0"/>'
+		. '</filter>'
 		. '</defs>'
 		. '</svg>';
 }
@@ -138,7 +122,6 @@ function lgl_render_block( $block_content, $block ) {
 	$border_radius   = $attrs['liquidGlassBlocksBorderRadius'] ?? 0;
 	$shadow          = $attrs['liquidGlassBlocksShadow'] ?? true;
 	$noise_intensity = $attrs['liquidGlassBlocksNoiseIntensity'] ?? 50;
-	$noise_scale     = $attrs['liquidGlassBlocksNoiseScale'] ?? 65;
 
 	// Build CSS custom properties.
 	$styles = array(
@@ -151,7 +134,7 @@ function lgl_render_block( $block_content, $block ) {
 	);
 
 	if ( in_array( $preset, array( 'grain-frost', 'fine-frost' ), true ) ) {
-		$styles['--lgl-noise-url'] = lgl_build_noise_url( $noise_intensity, $noise_scale );
+		$styles['--lgl-noise-opacity'] = (string) round( $noise_intensity / 100, 4 );
 	}
 
 	$style_parts = array();

@@ -154,19 +154,30 @@
 
 /* ----------------------------------------------------------------
    Noise layer (::after) — grain-frost & fine-frost only
+   SVG filters defined in the DOM; referenced here by ID.
    ---------------------------------------------------------------- */
 [data-lgl-effect="grain-frost"]::after,
 [data-lgl-effect="fine-frost"]::after {
 	content: "";
 	position: absolute;
 	inset: 0;
-	z-index: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
 	pointer-events: none;
 	border-radius: inherit;
 
-	background-image: var(--lgl-noise-url);
-	background-repeat: repeat;
+	background: white;
 	mix-blend-mode: overlay;
+	opacity: var(--lgl-noise-opacity, 0.5);
+}
+
+[data-lgl-effect="grain-frost"]::after {
+	filter: url(#lgl-noise-grain);
+}
+
+[data-lgl-effect="fine-frost"]::after {
+	filter: url(#lgl-noise-fine);
 }
 
 /* ----------------------------------------------------------------
@@ -174,7 +185,7 @@
    ---------------------------------------------------------------- */
 [data-lgl-effect] > * {
 	position: relative;
-	z-index: 1;
+	z-index: 2;
 }
 
 /* ----------------------------------------------------------------

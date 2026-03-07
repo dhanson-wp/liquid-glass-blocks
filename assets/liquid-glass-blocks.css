@@ -1,0 +1,192 @@
+/**
+ * Liquid Glass Blocks — Glassmorphism stylesheet.
+ *
+ * Shared between the iframed editor canvas and the frontend.
+ * All values are driven by CSS custom properties injected as inline
+ * styles — no hardcoded effect values live here.
+ */
+
+/* ----------------------------------------------------------------
+   Per-preset tuning — CSS-only custom properties
+   ---------------------------------------------------------------- */
+[data-lgl-effect="heavy-frost"] {
+	--lgl-brightness: 1.12;
+	--lgl-highlight: 0.45;
+	--lgl-highlight-end: 0.08;
+	--lgl-edge-light: 0.6;
+	--lgl-border-alpha: 0.5;
+	--lgl-inner-glow: 0.25;
+}
+
+[data-lgl-effect="soft-mist"] {
+	--lgl-brightness: 1.18;
+	--lgl-highlight: 0.35;
+	--lgl-highlight-end: 0.05;
+	--lgl-edge-light: 0.4;
+	--lgl-border-alpha: 0.4;
+	--lgl-inner-glow: 0.2;
+}
+
+[data-lgl-effect="glass-frost"] {
+	--lgl-brightness: 1.25;
+	--lgl-highlight: 0.55;
+	--lgl-highlight-end: 0.1;
+	--lgl-edge-light: 0.7;
+	--lgl-border-alpha: 0.6;
+	--lgl-inner-glow: 0.3;
+}
+
+[data-lgl-effect="light-frost"] {
+	--lgl-brightness: 1.15;
+	--lgl-highlight: 0.3;
+	--lgl-highlight-end: 0.04;
+	--lgl-edge-light: 0.35;
+	--lgl-border-alpha: 0.35;
+	--lgl-inner-glow: 0.15;
+}
+
+[data-lgl-effect="grain-frost"] {
+	--lgl-brightness: 1.1;
+	--lgl-highlight: 0.35;
+	--lgl-highlight-end: 0.06;
+	--lgl-edge-light: 0.5;
+	--lgl-border-alpha: 0.45;
+	--lgl-inner-glow: 0.2;
+}
+
+[data-lgl-effect="fine-frost"] {
+	--lgl-brightness: 1.14;
+	--lgl-highlight: 0.3;
+	--lgl-highlight-end: 0.05;
+	--lgl-edge-light: 0.45;
+	--lgl-border-alpha: 0.4;
+	--lgl-inner-glow: 0.18;
+}
+
+/* ----------------------------------------------------------------
+   Base: positioning context + depth shadow on the parent
+   ---------------------------------------------------------------- */
+[data-lgl-effect] {
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+	border-radius: var(--lgl-border-radius, 0px);
+	box-shadow:
+		0 8px 32px rgba(31, 38, 135, calc(0.25 * var(--lgl-shadow-opacity, 1))),
+		0 2px 8px rgba(0, 0, 0, calc(0.15 * var(--lgl-shadow-opacity, 1)));
+}
+
+/* ----------------------------------------------------------------
+   Glass layer (::before)
+   Backdrop blur + brightness + tinted overlay + specular highlights
+   + inset border (box-shadow) + edge light + inner glow.
+   ---------------------------------------------------------------- */
+[data-lgl-effect]::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: inherit;
+
+	backdrop-filter:
+		blur( var(--lgl-blur, 16px) )
+		saturate( var(--lgl-saturation, 1) )
+		brightness( var(--lgl-brightness, 1.1) );
+	-webkit-backdrop-filter:
+		blur( var(--lgl-blur, 16px) )
+		saturate( var(--lgl-saturation, 1) )
+		brightness( var(--lgl-brightness, 1.1) );
+
+	/* Specular highlight: primary radial + rim light + counter-light + base tint */
+	background:
+		radial-gradient(
+			ellipse 70% 40% at 25% 15%,
+			rgba(255, 255, 255, var(--lgl-highlight, 0.3)) 0%,
+			rgba(255, 255, 255, var(--lgl-highlight-end, 0.05)) 55%,
+			transparent 100%
+		),
+		linear-gradient(
+			135deg,
+			rgba(255, 255, 255, calc(var(--lgl-edge-light, 0.5) * 0.6)) 0%,
+			transparent 30%
+		),
+		linear-gradient(
+			315deg,
+			rgba(255, 255, 255, 0.03) 0%,
+			transparent 35%
+		),
+		var(--lgl-bg, rgba(255, 255, 255, 0.15));
+
+	/* Fresnel edge simulation: border glow + specular rim + bloom + depth + ambient */
+	box-shadow:
+		inset 0 0 0 var(--lgl-border-width, 1px)
+			rgba(255, 255, 255, var(--lgl-border-alpha, 0.4)),
+		inset 2px 2px 4px
+			rgba(255, 255, 255, var(--lgl-edge-light, 0.5)),
+		inset 8px 8px 24px
+			rgba(255, 255, 255, calc(var(--lgl-edge-light, 0.5) * 0.3)),
+		inset -1px -1px 0
+			rgba(0, 0, 0, 0.08),
+		inset 0 6px 32px
+			rgba(255, 255, 255, calc(var(--lgl-inner-glow, 0.2) * var(--lgl-shadow-opacity, 1)));
+}
+
+/* ----------------------------------------------------------------
+   Tier 1: Full refraction via SVG displacement (Chromium only)
+   Overrides the base backdrop-filter above when the browser
+   supports url() references inside backdrop-filter.
+   ---------------------------------------------------------------- */
+@supports (backdrop-filter: url(#lgl-refraction)) {
+	[data-lgl-effect]::before {
+		backdrop-filter:
+			url(#lgl-refraction)
+			blur(var(--lgl-blur, 16px))
+			saturate(var(--lgl-saturation, 1))
+			brightness(var(--lgl-brightness, 1.1));
+		-webkit-backdrop-filter:
+			url(#lgl-refraction)
+			blur(var(--lgl-blur, 16px))
+			saturate(var(--lgl-saturation, 1))
+			brightness(var(--lgl-brightness, 1.1));
+	}
+}
+
+/* ----------------------------------------------------------------
+   Noise layer (::after) — grain-frost & fine-frost only
+   ---------------------------------------------------------------- */
+[data-lgl-effect="grain-frost"]::after,
+[data-lgl-effect="fine-frost"]::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	border-radius: inherit;
+
+	background-image: var(--lgl-noise-url);
+	background-repeat: repeat;
+	mix-blend-mode: overlay;
+}
+
+/* ----------------------------------------------------------------
+   Content stacking — keep block contents above the effect layers
+   ---------------------------------------------------------------- */
+[data-lgl-effect] > * {
+	position: relative;
+	z-index: 1;
+}
+
+/* ----------------------------------------------------------------
+   Editor-only: subtle spacing for the info notice
+   ---------------------------------------------------------------- */
+.lgl-background-notice {
+	margin-bottom: 16px;
+}
+
+.lgl-control-label {
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	margin-bottom: 8px;
+}

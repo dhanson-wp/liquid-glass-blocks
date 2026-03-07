@@ -133,26 +133,6 @@
 }
 
 /* ----------------------------------------------------------------
-   Tier 1: Full refraction via SVG displacement (Chromium only)
-   Overrides the base backdrop-filter above when the browser
-   supports url() references inside backdrop-filter.
-   ---------------------------------------------------------------- */
-@supports (backdrop-filter: url(#lgl-refraction)) {
-	[data-lgl-effect]::before {
-		backdrop-filter:
-			url(#lgl-refraction)
-			blur(var(--lgl-blur, 16px))
-			saturate(var(--lgl-saturation, 1))
-			brightness(var(--lgl-brightness, 1.1));
-		-webkit-backdrop-filter:
-			url(#lgl-refraction)
-			blur(var(--lgl-blur, 16px))
-			saturate(var(--lgl-saturation, 1))
-			brightness(var(--lgl-brightness, 1.1));
-	}
-}
-
-/* ----------------------------------------------------------------
    Noise layer (::after) — grain-frost & fine-frost only
    SVG filters defined in the DOM; referenced here by ID.
    ---------------------------------------------------------------- */

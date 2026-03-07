@@ -34,15 +34,15 @@ function lgl_hex_to_rgba( $hex, $opacity ) {
 }
 
 /**
- * Print the inline SVG refraction filter once per page load.
+ * Print SVG noise filters once per page load.
  *
- * The SVG filter must live in the DOM — `backdrop-filter: url(#id)` only
- * resolves when the referenced filter is in the same document. A static
- * flag ensures it's emitted exactly once, before the first glass block.
+ * The SVG filters must live in the DOM so that CSS filter: url(#id)
+ * can resolve them. A static flag ensures the markup is emitted
+ * exactly once, before the first glass block.
  *
  * @return string SVG markup on first call, empty string thereafter.
  */
-function lgl_print_svg_filter() {
+function lgl_print_svg_filters() {
 	static $printed = false;
 
 	if ( $printed ) {
@@ -54,28 +54,6 @@ function lgl_print_svg_filter() {
 	return '<svg aria-hidden="true" focusable="false"'
 		. ' style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">'
 		. '<defs>'
-		. '<filter id="lgl-refraction" x="-20%" y="-20%" width="140%" height="140%"'
-		. ' color-interpolation-filters="sRGB">'
-		. '<feTurbulence type="fractalNoise" baseFrequency="0.006 0.008"'
-		. ' numOctaves="3" seed="2" result="noise"/>'
-		. '<feGaussianBlur in="noise" stdDeviation="3" result="smooth-noise"/>'
-		. '<feDisplacementMap in="SourceGraphic" in2="smooth-noise"'
-		. ' scale="30" xChannelSelector="R" yChannelSelector="G"'
-		. ' result="displaced"/>'
-		. '<feColorMatrix in="displaced" type="matrix"'
-		. ' values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"'
-		. ' result="r-channel"/>'
-		. '<feOffset in="r-channel" dx="2" dy="0" result="r-shifted"/>'
-		. '<feColorMatrix in="displaced" type="matrix"'
-		. ' values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"'
-		. ' result="g-channel"/>'
-		. '<feColorMatrix in="displaced" type="matrix"'
-		. ' values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"'
-		. ' result="b-channel"/>'
-		. '<feOffset in="b-channel" dx="-2" dy="0" result="b-shifted"/>'
-		. '<feBlend in="r-shifted" in2="g-channel" mode="screen" result="rg"/>'
-		. '<feBlend in="rg" in2="b-shifted" mode="screen"/>'
-		. '</filter>'
 		. '<filter id="lgl-noise-grain" x="0%" y="0%" width="100%" height="100%"'
 		. ' color-interpolation-filters="sRGB">'
 		. '<feTurbulence type="fractalNoise" baseFrequency="0.65"'
@@ -155,6 +133,6 @@ function lgl_render_block( $block_content, $block ) {
 		$processor->set_attribute( 'style', $merged );
 	}
 
-	return lgl_print_svg_filter() . $processor->get_updated_html();
+	return lgl_print_svg_filters() . $processor->get_updated_html();
 }
 add_filter( 'render_block', 'lgl_render_block', 10, 2 );

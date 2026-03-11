@@ -5,3 +5,7 @@ plans/
 *.jpg
 *.jpeg
 *.png
+
+# Allow README images
+!.wordpress-org/
+!.wordpress-org/**

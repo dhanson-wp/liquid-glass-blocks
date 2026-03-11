@@ -4,7 +4,7 @@ Add liquid glass and glassmorphism effects to WordPress core blocks — no custo
 
 ### Visual
 
-[![Liquid Glass Blocks demo](https://cdn.loom.com/sessions/thumbnails/940939913b864e64bf2456b2a9c94ebf-with-play.gif)](https://www.loom.com/share/940939913b864e64bf2456b2a9c94ebf)
+[![Liquid Glass Blocks demo](https://github.com/user-attachments/assets/8f1d3ee9-3b2b-469a-9371-f9075159f1dd)
 
 ### Features
 

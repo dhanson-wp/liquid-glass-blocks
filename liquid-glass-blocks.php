@@ -2,10 +2,11 @@
 /**
  * Plugin Name: Liquid Glass Blocks
  * Description: Adds liquid glass / glassmorphism effects to WordPress core blocks via block filters.
- * Version:     0.1.0-alpha
+ * Version:     1.0.0
  * Author:      Derek Hanson
  * License:     GPL-2.0-or-later
  * Requires at least: 6.2
+ * Tested up to: 6.9
  * Requires PHP: 7.4
  */
 

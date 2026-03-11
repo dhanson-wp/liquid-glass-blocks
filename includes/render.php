@@ -185,7 +185,9 @@ function lgl_inject_on_wrapper( $html, $classes, $style ) {
 		return $html;
 	}
 
-	$processor->add_class( ...explode( ' ', $classes ) );
+	foreach ( explode( ' ', $classes ) as $cls ) {
+		$processor->add_class( $cls );
+	}
 
 	if ( $style ) {
 		$existing = $processor->get_attribute( 'style' ) ?? '';
@@ -207,7 +209,9 @@ function lgl_inject_on_button( $html, $classes, $style ) {
 		return $html;
 	}
 
-	$processor->add_class( ...explode( ' ', $classes ) );
+	foreach ( explode( ' ', $classes ) as $cls ) {
+		$processor->add_class( $cls );
+	}
 
 	if ( $style ) {
 		$existing = $processor->get_attribute( 'style' ) ?? '';

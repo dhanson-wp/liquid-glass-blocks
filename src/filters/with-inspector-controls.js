@@ -19,6 +19,7 @@ import {
 	LGL_SUPPORTED_BLOCKS,
 	EFFECT_PRESETS,
 	SHADOW_OPTIONS,
+	SHADOW_DEFAULTS,
 	PRESET_DEFAULTS,
 } from '../constants';
 
@@ -267,12 +268,141 @@ export const withInspectorControls = createHigherOrderComponent(
 											glass.shadowEffect || 'none'
 										}
 										options={ SHADOW_OPTIONS }
-										onChange={ ( value ) =>
+										onChange={ ( value ) => {
+											const defaults =
+												SHADOW_DEFAULTS[ value ] ||
+												{};
 											updateGlass( {
 												shadowEffect: value,
-											} )
-										}
+												shadowColor:
+													defaults.color || '',
+												shadowBlur:
+													defaults.blur ?? null,
+												shadowSpread:
+													defaults.spread ??
+													null,
+												shadowOffsetX:
+													defaults.x ?? null,
+												shadowOffsetY:
+													defaults.y ?? null,
+											} );
+										} }
 									/>
+
+									{ /* --- Shadow adjustment controls --- */ }
+
+									{ glass.shadowEffect &&
+										glass.shadowEffect !== 'none' && (
+											<>
+												<p
+													style={ {
+														marginBottom: '8px',
+														fontSize: '11px',
+														textTransform:
+															'uppercase',
+														fontWeight: 500,
+													} }
+												>
+													Shadow Color
+												</p>
+												<ColorPalette
+													colors={ colors }
+													value={
+														glass.shadowColor ||
+														''
+													}
+													onChange={ ( value ) =>
+														updateGlass( {
+															shadowColor:
+																value || '',
+														} )
+													}
+													enableAlpha
+												/>
+											</>
+										) }
+
+									{ ( glass.shadowEffect === 'drop' ||
+										glass.shadowEffect === 'glow' ||
+										glass.shadowEffect === 'soft' ) && (
+										<RangeControl
+											label="Shadow Blur"
+											value={
+												glass.shadowBlur ??
+												( SHADOW_DEFAULTS[
+													glass.shadowEffect
+												]?.blur ?? 28 )
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													shadowBlur: value,
+												} )
+											}
+											min={ 0 }
+											max={ 100 }
+											step={ 1 }
+										/>
+									) }
+
+									{ ( glass.shadowEffect === 'drop' ||
+										glass.shadowEffect === 'glow' ) && (
+										<RangeControl
+											label="Shadow Spread"
+											value={
+												glass.shadowSpread ??
+												( SHADOW_DEFAULTS[
+													glass.shadowEffect
+												]?.spread ?? 2 )
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													shadowSpread: value,
+												} )
+											}
+											min={ -20 }
+											max={ 50 }
+											step={ 1 }
+										/>
+									) }
+
+									{ glass.shadowEffect === 'drop' && (
+										<>
+											<RangeControl
+												label="Offset X"
+												value={
+													glass.shadowOffsetX ??
+													( SHADOW_DEFAULTS.drop
+														?.x ?? -1 )
+												}
+												onChange={ ( value ) =>
+													updateGlass( {
+														shadowOffsetX:
+															value,
+													} )
+												}
+												min={ -50 }
+												max={ 50 }
+												step={ 1 }
+											/>
+											<RangeControl
+												label="Offset Y"
+												value={
+													glass.shadowOffsetY ??
+													( SHADOW_DEFAULTS.drop
+														?.y ?? 9 )
+												}
+												onChange={ ( value ) =>
+													updateGlass( {
+														shadowOffsetY:
+															value,
+													} )
+												}
+												min={ -50 }
+												max={ 50 }
+												step={ 1 }
+											/>
+										</>
+									) }
 								</>
 							) }
 						</PanelBody>

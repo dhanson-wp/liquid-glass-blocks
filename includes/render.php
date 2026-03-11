@@ -132,6 +132,25 @@ function lgl_render_block( $block_content, $block ) {
 		$custom_props[] = '--lgl-tier2-blur:' . $tier2_blur . 'px';
 	}
 
+	// Shadow CSS custom properties.
+	if ( 'none' !== $shadow ) {
+		if ( ! empty( $attrs['shadowColor'] ) ) {
+			$custom_props[] = '--lgl-shadow-color:' . sanitize_hex_color_with_alpha( $attrs['shadowColor'] );
+		}
+		if ( isset( $attrs['shadowBlur'] ) && null !== $attrs['shadowBlur'] ) {
+			$custom_props[] = '--lgl-shadow-blur:' . (int) $attrs['shadowBlur'] . 'px';
+		}
+		if ( isset( $attrs['shadowSpread'] ) && null !== $attrs['shadowSpread'] ) {
+			$custom_props[] = '--lgl-shadow-spread:' . (int) $attrs['shadowSpread'] . 'px';
+		}
+		if ( isset( $attrs['shadowOffsetX'] ) && null !== $attrs['shadowOffsetX'] ) {
+			$custom_props[] = '--lgl-shadow-x:' . (int) $attrs['shadowOffsetX'] . 'px';
+		}
+		if ( isset( $attrs['shadowOffsetY'] ) && null !== $attrs['shadowOffsetY'] ) {
+			$custom_props[] = '--lgl-shadow-y:' . (int) $attrs['shadowOffsetY'] . 'px';
+		}
+	}
+
 	// Read border-radius from the block's style attribute and forward it.
 	$border_radius = lgl_get_border_radius( $block );
 	if ( $border_radius ) {

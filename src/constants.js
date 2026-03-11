@@ -92,6 +92,13 @@ export const PRESET_DEFAULTS = {
 	},
 };
 
+export const SHADOW_DEFAULTS = {
+	drop: { color: 'rgba(0,0,0,0.78)', blur: 28, spread: 2, x: -1, y: 9 },
+	glow: { color: 'rgba(165,165,165,0.78)', blur: 8, spread: 1 },
+	soft: { color: '#bebebe', blur: 60 },
+	frosted: { color: 'rgb(206,206,206)' },
+};
+
 export const DEFAULT_ATTRIBUTES = {
 	enable: false,
 	effect: 'heavy-frost',
@@ -99,6 +106,11 @@ export const DEFAULT_ATTRIBUTES = {
 	backdropFilter: 24,
 	brightness: 1,
 	shadowEffect: 'none',
+	shadowColor: '',
+	shadowBlur: null,
+	shadowSpread: null,
+	shadowOffsetX: null,
+	shadowOffsetY: null,
 	accent: '',
 	distortionScale: 30,
 	noiseFrequency: 0.02,

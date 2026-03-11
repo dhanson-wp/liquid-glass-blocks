@@ -24,6 +24,7 @@
 	position: absolute;
 	inset: 0;
 	z-index: -1;
+	border-radius: inherit;
 	background: var(--lgl-bg);
 	-webkit-backdrop-filter: blur(var(--lgl-blur));
 	backdrop-filter: blur(var(--lgl-blur));
@@ -59,6 +60,7 @@
 	position: absolute;
 	inset: 0;
 	z-index: -1;
+	border-radius: inherit;
 	-webkit-backdrop-filter: blur(var(--lgl-tier2-blur, 5px));
 	backdrop-filter: blur(var(--lgl-tier2-blur, 5px));
 	filter: var(--lgl-filter);
@@ -66,21 +68,34 @@
 }
 
 /* ==========================================================================
-   Shadows — independent of glass effect
+   Shadows — independent of glass effect, driven by CSS custom properties
    ========================================================================== */
 
 .lgl-shadow-drop {
-	box-shadow: -1px 9px 28px 2px rgba(0, 0, 0, 0.78);
+	box-shadow:
+		var(--lgl-shadow-x, -1px)
+		var(--lgl-shadow-y, 9px)
+		var(--lgl-shadow-blur, 28px)
+		var(--lgl-shadow-spread, 2px)
+		var(--lgl-shadow-color, rgba(0, 0, 0, 0.78));
 	border-radius: var(--lgl-border-radius, 24px);
 }
 
 .lgl-shadow-glow {
-	box-shadow: 0 0 8px 1px rgb(165 165 165 / 78%);
+	box-shadow:
+		0 0
+		var(--lgl-shadow-blur, 8px)
+		var(--lgl-shadow-spread, 1px)
+		var(--lgl-shadow-color, rgb(165 165 165 / 78%));
 	border-radius: var(--lgl-border-radius, 16px);
 }
 
 .lgl-shadow-soft {
-	box-shadow: 1px 1px 60px 0 #bebebe;
+	box-shadow:
+		1px 1px
+		var(--lgl-shadow-blur, 60px)
+		0
+		var(--lgl-shadow-color, #bebebe);
 	border-radius: var(--lgl-border-radius, 8px);
 }
 
@@ -90,6 +105,6 @@
 		inset 2px 2px 5px rgba(195, 218, 255, 0.2),
 		inset -10px -10px 20px rgba(229, 253, 190, 0.1),
 		inset -2px -2px 30px rgba(247, 255, 226, 0.2);
-	border: 2px solid rgb(206, 206, 206);
+	border: 2px solid var(--lgl-shadow-color, rgb(206, 206, 206));
 	border-radius: var(--lgl-border-radius, 24px);
 }

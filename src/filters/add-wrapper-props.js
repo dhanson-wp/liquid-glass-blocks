@@ -155,6 +155,28 @@ export const withWrapperProps = createHigherOrderComponent(
 					( glass.tier2Blur ?? 5 ) + 'px';
 			}
 
+			// Shadow CSS custom properties.
+			if ( shadow !== 'none' ) {
+				if ( glass.shadowColor ) {
+					style[ '--lgl-shadow-color' ] = glass.shadowColor;
+				}
+				if ( glass.shadowBlur != null ) {
+					style[ '--lgl-shadow-blur' ] = glass.shadowBlur + 'px';
+				}
+				if ( glass.shadowSpread != null ) {
+					style[ '--lgl-shadow-spread' ] =
+						glass.shadowSpread + 'px';
+				}
+				if ( glass.shadowOffsetX != null ) {
+					style[ '--lgl-shadow-x' ] =
+						glass.shadowOffsetX + 'px';
+				}
+				if ( glass.shadowOffsetY != null ) {
+					style[ '--lgl-shadow-y' ] =
+						glass.shadowOffsetY + 'px';
+				}
+			}
+
 			// Read border-radius from the block's style attribute.
 			const borderRadius =
 				props.attributes.style?.border?.radius;

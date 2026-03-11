@@ -4,7 +4,6 @@
 
 export const LGL_SUPPORTED_BLOCKS = [
 	'core/group',
-	'core/cover',
 	'core/button',
 ];
 

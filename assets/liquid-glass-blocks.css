@@ -108,3 +108,28 @@
 	border: 2px solid var(--lgl-shadow-color, rgb(206, 206, 206));
 	border-radius: var(--lgl-border-radius, 24px);
 }
+
+/* ==========================================================================
+   Button hover — glass effect and shadow disappear for a clean hover state.
+   Frontend: targets the <a> element directly.
+   Editor:   targets the block wrapper via [data-type="core/button"].
+   ========================================================================== */
+
+a[class*="lgl-effect-"]::before,
+[data-type="core/button"][class*="lgl-effect-"]::before {
+	transition: opacity 0.2s ease;
+}
+
+a[class*="lgl-effect-"]:hover::before,
+[data-type="core/button"][class*="lgl-effect-"]:hover::before {
+	opacity: 0;
+}
+
+a[class*="lgl-effect-"]:hover,
+a[class*="lgl-effect-"][class*="lgl-shadow-"]:hover,
+[data-type="core/button"][class*="lgl-effect-"]:hover,
+[data-type="core/button"][class*="lgl-effect-"][class*="lgl-shadow-"]:hover {
+	box-shadow: none;
+	border-color: transparent;
+	background: transparent;
+}

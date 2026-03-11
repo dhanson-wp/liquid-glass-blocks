@@ -1,13 +1,12 @@
 /**
- * Register Liquid Glass attributes on supported blocks.
- *
  * Filter: blocks.registerBlockType
+ * Adds the liquidGlass attribute to supported blocks.
  */
-import { SUPPORTED_BLOCKS } from '../constants';
-import { DEFAULT_ATTRIBUTES } from '../presets';
 
-export function addAttributes( settings, name ) {
-	if ( ! SUPPORTED_BLOCKS.includes( name ) ) {
+import { LGL_SUPPORTED_BLOCKS, DEFAULT_ATTRIBUTES } from '../constants';
+
+export function addLiquidGlassAttributes( settings, name ) {
+	if ( ! LGL_SUPPORTED_BLOCKS.includes( name ) ) {
 		return settings;
 	}
 
@@ -15,7 +14,10 @@ export function addAttributes( settings, name ) {
 		...settings,
 		attributes: {
 			...settings.attributes,
-			...DEFAULT_ATTRIBUTES,
+			liquidGlass: {
+				type: 'object',
+				default: { ...DEFAULT_ATTRIBUTES },
+			},
 		},
 	};
 }

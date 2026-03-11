@@ -1,2 +1,7 @@
 node_modules/
 build/
+essential-blocks/
+plans/
+*.jpg
+*.jpeg
+*.png

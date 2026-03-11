@@ -1,10 +1,6 @@
 <?php
 /**
- * Render-time block filter for Liquid Glass Blocks.
- *
- * Injects data-lgl-effect and CSS custom properties onto supported blocks
- * via WP_HTML_Tag_Processor. PHP never writes inline CSS rules — only
- * CSS custom properties.
+ * Frontend rendering: render_block filter and per-block SVG filter injection.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -12,127 +8,234 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Convert a hex colour + opacity (0-100) to an rgba() string.
- *
- * @param string     $hex     Hex colour (#ffffff or #fff).
- * @param int|float  $opacity Opacity 0-100.
- * @return string rgba() value.
+ * Tier 1 effects (CSS-only backdrop-filter).
  */
-function lgl_hex_to_rgba( $hex, $opacity ) {
-	$hex = ltrim( $hex, '#' );
-
-	if ( strlen( $hex ) === 3 ) {
-		$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-	}
-
-	$r = hexdec( substr( $hex, 0, 2 ) );
-	$g = hexdec( substr( $hex, 2, 2 ) );
-	$b = hexdec( substr( $hex, 4, 2 ) );
-	$a = round( $opacity / 100, 4 );
-
-	return sprintf( 'rgba(%d,%d,%d,%s)', $r, $g, $b, $a );
-}
+define( 'LGL_TIER1_EFFECTS', array( 'heavy-frost', 'soft-mist' ) );
 
 /**
- * Print SVG noise filters once per page load.
- *
- * The SVG filters must live in the DOM so that CSS filter: url(#id)
- * can resolve them. A static flag ensures the markup is emitted
- * exactly once, before the first glass block.
- *
- * @return string SVG markup on first call, empty string thereafter.
+ * Tier 2 effects (SVG displacement).
  */
-function lgl_print_svg_filters() {
-	static $printed = false;
+define( 'LGL_TIER2_EFFECTS', array( 'light-frost', 'grain-frost', 'fine-frost' ) );
 
-	if ( $printed ) {
+/**
+ * Per-preset SVG filter configuration: noise type and seed.
+ * Numeric parameters (scale, frequency, octaves, smoothing) come from block attributes.
+ */
+define( 'LGL_TIER2_FILTER_CONFIG', array(
+	'light-frost' => array( 'noiseType' => 'fractalNoise', 'seed' => 92 ),
+	'grain-frost' => array( 'noiseType' => 'fractalNoise', 'seed' => 9000 ),
+	'fine-frost'  => array( 'noiseType' => 'turbulence',   'seed' => 0 ),
+) );
+
+/**
+ * Build an SVG string containing a single <filter> element for a tier 2 block.
+ *
+ * @param string $filter_id Unique filter ID.
+ * @param string $effect    The active tier 2 effect slug.
+ * @param array  $attrs     Block attributes (liquidGlass object).
+ * @return string SVG markup.
+ */
+function lgl_build_filter_svg( $filter_id, $effect, $attrs ) {
+	$config = LGL_TIER2_FILTER_CONFIG[ $effect ] ?? null;
+	if ( ! $config ) {
 		return '';
 	}
 
-	$printed = true;
+	$noise_type = $config['noiseType'];
+	$seed       = (int) $config['seed'];
+	$scale      = isset( $attrs['distortionScale'] ) ? (float) $attrs['distortionScale'] : 30;
+	$freq       = isset( $attrs['noiseFrequency'] ) ? (float) $attrs['noiseFrequency'] : 0.02;
+	$octaves    = isset( $attrs['noiseOctaves'] ) ? (int) $attrs['noiseOctaves'] : 2;
+	$smoothing  = isset( $attrs['noiseSmoothing'] ) ? (float) $attrs['noiseSmoothing'] : 0;
 
-	return '<svg aria-hidden="true" focusable="false"'
-		. ' style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">'
-		. '<defs>'
-		. '<filter id="lgl-noise-grain" x="0%" y="0%" width="100%" height="100%"'
-		. ' color-interpolation-filters="sRGB">'
-		. '<feTurbulence type="fractalNoise" baseFrequency="0.65"'
-		. ' numOctaves="4" stitchTiles="stitch"/>'
-		. '<feColorMatrix type="saturate" values="0"/>'
-		. '</filter>'
-		. '<filter id="lgl-noise-fine" x="0%" y="0%" width="100%" height="100%"'
-		. ' color-interpolation-filters="sRGB">'
-		. '<feTurbulence type="fractalNoise" baseFrequency="1.2"'
-		. ' numOctaves="4" stitchTiles="stitch"/>'
-		. '<feColorMatrix type="saturate" values="0"/>'
-		. '</filter>'
-		. '</defs>'
-		. '</svg>';
+	$seed_attr = $seed ? ' seed="' . $seed . '"' : '';
+	$freq_str  = $freq . ' ' . $freq;
+
+	$inner = '<feTurbulence type="' . esc_attr( $noise_type ) . '" baseFrequency="' . esc_attr( $freq_str ) . '" numOctaves="' . (int) $octaves . '"' . $seed_attr . ' result="noise"/>';
+
+	if ( $smoothing > 0 ) {
+		$inner .= '<feGaussianBlur in="noise" stdDeviation="' . esc_attr( $smoothing ) . '" result="smooth"/>';
+		$inner .= '<feDisplacementMap in="SourceGraphic" in2="smooth" scale="' . esc_attr( $scale ) . '" xChannelSelector="R" yChannelSelector="G"/>';
+	} else {
+		$inner .= '<feDisplacementMap in="SourceGraphic" in2="noise" scale="' . esc_attr( $scale ) . '" xChannelSelector="R" yChannelSelector="G"/>';
+	}
+
+	return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute"><defs>'
+		. '<filter id="' . esc_attr( $filter_id ) . '" x="0%" y="0%" width="100%" height="100%">'
+		. $inner
+		. '</filter></defs></svg>';
 }
 
 /**
- * Render block filter — injects Liquid Glass data attributes and
- * CSS custom properties onto supported blocks.
+ * Modify rendered block HTML to inject liquid glass classes and CSS custom properties.
  *
- * @param string $block_content Rendered block HTML.
- * @param array  $block         Block data including attrs.
- * @return string Modified HTML.
+ * @param string $block_content The block HTML.
+ * @param array  $block         The parsed block data.
+ * @return string Modified block HTML.
  */
 function lgl_render_block( $block_content, $block ) {
 	if ( ! in_array( $block['blockName'], LGL_SUPPORTED_BLOCKS, true ) ) {
 		return $block_content;
 	}
 
-	$attrs = $block['attrs'] ?? array();
+	$attrs = $block['attrs']['liquidGlass'] ?? array();
 
-	if ( empty( $attrs['liquidGlassBlocksEnabled'] ) ) {
+	if ( empty( $attrs['enable'] ) ) {
 		return $block_content;
 	}
 
-	$preset = $attrs['liquidGlassBlocksPreset'] ?? 'heavy-frost';
+	// Set global flag for conditional asset loading.
+	$GLOBALS['lgl_has_glass'] = true;
 
-	// Read attribute values with defaults matching the heavy-frost preset.
-	$blur            = $attrs['liquidGlassBlocksBlur'] ?? 28;
-	$tint_color      = $attrs['liquidGlassBlocksTintColor'] ?? '#ffffff';
-	$tint_opacity    = $attrs['liquidGlassBlocksTintOpacity'] ?? 30;
-	$saturation      = $attrs['liquidGlassBlocksSaturation'] ?? 1;
-	$border_width    = $attrs['liquidGlassBlocksBorderWidth'] ?? 1;
-	$border_radius   = $attrs['liquidGlassBlocksBorderRadius'] ?? 0;
-	$shadow          = $attrs['liquidGlassBlocksShadow'] ?? true;
-	$noise_intensity = $attrs['liquidGlassBlocksNoiseIntensity'] ?? 50;
+	$effect       = $attrs['effect'] ?? 'heavy-frost';
+	$shadow       = $attrs['shadowEffect'] ?? 'none';
+	$is_tier1     = in_array( $effect, LGL_TIER1_EFFECTS, true );
+	$is_tier2     = in_array( $effect, LGL_TIER2_EFFECTS, true );
+
+	// Build CSS classes.
+	$classes = 'lgl-effect-' . sanitize_html_class( $effect );
+	if ( 'none' !== $shadow ) {
+		$classes .= ' lgl-shadow-' . sanitize_html_class( $shadow );
+	}
 
 	// Build CSS custom properties.
-	$styles = array(
-		'--lgl-blur'           => $blur . 'px',
-		'--lgl-bg'             => lgl_hex_to_rgba( $tint_color, $tint_opacity ),
-		'--lgl-saturation'     => (string) $saturation,
-		'--lgl-border-width'   => $border_width . 'px',
-		'--lgl-border-radius'  => $border_radius . 'px',
-		'--lgl-shadow-opacity' => $shadow ? '1' : '0',
-	);
+	$custom_props = array();
 
-	if ( in_array( $preset, array( 'grain-frost', 'fine-frost' ), true ) ) {
-		$styles['--lgl-noise-opacity'] = (string) round( $noise_intensity / 100, 4 );
+	if ( $is_tier1 ) {
+		$blur = isset( $attrs['backdropFilter'] ) ? (int) $attrs['backdropFilter'] : 24;
+		$custom_props[] = '--lgl-blur:' . $blur . 'px';
+
+		if ( ! empty( $attrs['backgroundColor'] ) ) {
+			$custom_props[] = '--lgl-bg:' . sanitize_hex_color_with_alpha( $attrs['backgroundColor'] );
+		}
+
+		if ( 'soft-mist' === $effect && isset( $attrs['brightness'] ) ) {
+			$custom_props[] = '--lgl-brightness:' . (float) $attrs['brightness'];
+		}
 	}
 
-	$style_parts = array();
-	foreach ( $styles as $prop => $value ) {
-		$style_parts[] = $prop . ':' . $value;
+	if ( $is_tier2 ) {
+		// Accent color.
+		if ( ! empty( $attrs['accent'] ) ) {
+			$custom_props[] = '--lgl-accent:' . sanitize_hex_color_with_alpha( $attrs['accent'] );
+		}
+
+		// Per-block SVG filter reference.
+		static $filter_counter = 0;
+		$filter_counter++;
+		$filter_id = 'lgl-filter-' . $filter_counter;
+
+		$custom_props[] = '--lgl-filter:url(#' . esc_attr( $filter_id ) . ')';
+
+		// Tier 2 backdrop blur.
+		$tier2_blur = isset( $attrs['tier2Blur'] ) ? max( 1, (int) $attrs['tier2Blur'] ) : 5;
+		$custom_props[] = '--lgl-tier2-blur:' . $tier2_blur . 'px';
 	}
-	$style_string = implode( ';', $style_parts );
 
-	$processor = new WP_HTML_Tag_Processor( $block_content );
-
-	if ( $processor->next_tag() ) {
-		$processor->set_attribute( 'data-lgl-effect', $preset );
-
-		// Merge with any existing inline style.
-		$existing = $processor->get_attribute( 'style' );
-		$merged   = $existing ? rtrim( $existing, '; ' ) . ';' . $style_string : $style_string;
-
-		$processor->set_attribute( 'style', $merged );
+	// Read border-radius from the block's style attribute and forward it.
+	$border_radius = lgl_get_border_radius( $block );
+	if ( $border_radius ) {
+		$custom_props[] = '--lgl-border-radius:' . $border_radius;
 	}
 
-	return lgl_print_svg_filters() . $processor->get_updated_html();
+	$style_string = implode( ';', $custom_props );
+
+	// For core/button, target the inner <a> element.
+	if ( 'core/button' === $block['blockName'] ) {
+		$block_content = lgl_inject_on_button( $block_content, $classes, $style_string );
+	} else {
+		$block_content = lgl_inject_on_wrapper( $block_content, $classes, $style_string );
+	}
+
+	// Append per-block SVG filter for tier 2 effects.
+	if ( $is_tier2 && isset( $filter_id ) ) {
+		$block_content .= lgl_build_filter_svg( $filter_id, $effect, $attrs );
+	}
+
+	return $block_content;
 }
 add_filter( 'render_block', 'lgl_render_block', 10, 2 );
+
+/**
+ * Inject classes and styles onto the block's outer wrapper element.
+ */
+function lgl_inject_on_wrapper( $html, $classes, $style ) {
+	$processor = new WP_HTML_Tag_Processor( $html );
+
+	if ( ! $processor->next_tag() ) {
+		return $html;
+	}
+
+	$processor->add_class( ...explode( ' ', $classes ) );
+
+	if ( $style ) {
+		$existing = $processor->get_attribute( 'style' ) ?? '';
+		$separator = $existing && ! str_ends_with( trim( $existing ), ';' ) ? ';' : '';
+		$processor->set_attribute( 'style', $existing . $separator . $style );
+	}
+
+	return $processor->get_updated_html();
+}
+
+/**
+ * Inject classes and styles onto the inner <a> of core/button.
+ */
+function lgl_inject_on_button( $html, $classes, $style ) {
+	$processor = new WP_HTML_Tag_Processor( $html );
+
+	// Skip the outer <div> and find the inner <a>.
+	if ( ! $processor->next_tag( 'a' ) ) {
+		return $html;
+	}
+
+	$processor->add_class( ...explode( ' ', $classes ) );
+
+	if ( $style ) {
+		$existing = $processor->get_attribute( 'style' ) ?? '';
+		$separator = $existing && ! str_ends_with( trim( $existing ), ';' ) ? ';' : '';
+		$processor->set_attribute( 'style', $existing . $separator . $style );
+	}
+
+	return $processor->get_updated_html();
+}
+
+/**
+ * Extract border-radius from the block's existing style attribute.
+ * Core stores it as attrs.style.border.radius (string or object).
+ */
+function lgl_get_border_radius( $block ) {
+	$radius = $block['attrs']['style']['border']['radius'] ?? null;
+
+	if ( ! $radius ) {
+		return '';
+	}
+
+	// Simple value: "24px", "1em", etc.
+	if ( is_string( $radius ) ) {
+		return esc_attr( $radius );
+	}
+
+	// Object with individual corners: topLeft, topRight, bottomRight, bottomLeft.
+	if ( is_array( $radius ) ) {
+		$tl = esc_attr( $radius['topLeft'] ?? '0px' );
+		$tr = esc_attr( $radius['topRight'] ?? '0px' );
+		$br = esc_attr( $radius['bottomRight'] ?? '0px' );
+		$bl = esc_attr( $radius['bottomLeft'] ?? '0px' );
+		return "$tl $tr $br $bl";
+	}
+
+	return '';
+}
+
+/**
+ * Sanitize a hex color that may include an alpha channel.
+ * Accepts #RGB, #RRGGBB, #RRGGBBAA, or CSS color keywords/functions.
+ */
+function sanitize_hex_color_with_alpha( $color ) {
+	// Allow hex colors with optional alpha.
+	if ( preg_match( '/^#([0-9a-fA-F]{3,8})$/', $color ) ) {
+		return $color;
+	}
+	// Allow CSS color functions and keywords.
+	return esc_attr( $color );
+}

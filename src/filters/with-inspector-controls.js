@@ -1,245 +1,285 @@
 /**
- * Add a "Liquid Glass" panel to the block sidebar for supported blocks.
- *
  * Filter: editor.BlockEdit
+ * Renders the "Liquid Glass" sidebar panel with controls.
  */
+
 import { createHigherOrderComponent } from '@wordpress/compose';
-import { InspectorControls, useSetting } from '@wordpress/block-editor';
+import { Fragment } from '@wordpress/element';
+import { InspectorControls } from '@wordpress/block-editor';
 import {
 	PanelBody,
 	ToggleControl,
 	SelectControl,
 	RangeControl,
 	Notice,
-	ColorPalette,
 } from '@wordpress/components';
+import { ColorPalette, useSetting } from '@wordpress/block-editor';
 
-import { SUPPORTED_BLOCKS } from '../constants';
-import { PRESETS, PRESET_OPTIONS } from '../presets';
+import {
+	LGL_SUPPORTED_BLOCKS,
+	EFFECT_PRESETS,
+	SHADOW_OPTIONS,
+	PRESET_DEFAULTS,
+} from '../constants';
 
 export const withInspectorControls = createHigherOrderComponent(
 	( BlockEdit ) => {
 		return ( props ) => {
-			const { name, attributes, setAttributes } = props;
-
-			if ( ! SUPPORTED_BLOCKS.includes( name ) ) {
+			if ( ! LGL_SUPPORTED_BLOCKS.includes( props.name ) ) {
 				return <BlockEdit { ...props } />;
 			}
 
-			const {
-				liquidGlassBlocksEnabled,
-				liquidGlassBlocksPreset,
-				liquidGlassBlocksBlur,
-				liquidGlassBlocksTintColor,
-				liquidGlassBlocksTintOpacity,
-				liquidGlassBlocksSaturation,
-				liquidGlassBlocksBorderWidth,
-				liquidGlassBlocksBorderRadius,
-				liquidGlassBlocksShadow,
-				liquidGlassBlocksNoiseIntensity,
-			} = attributes;
+			const { attributes, setAttributes } = props;
+			const glass = attributes.liquidGlass || {};
+			const enabled = !! glass.enable;
+			const effect = glass.effect || 'heavy-frost';
+			const preset = EFFECT_PRESETS.find( ( p ) => p.value === effect );
+			const isTier1 = preset?.tier === 1;
+			const isTier2 = preset?.tier === 2;
+			const isSoftMist = effect === 'soft-mist';
 
-			const colors = useSetting( 'color.palette' ) || [];
+			const colors = useSetting( 'color.palette' );
 
-			const preset = liquidGlassBlocksPreset || 'heavy-frost';
-			const isGlassFrost = preset === 'glass-frost';
-			const isNoise = [ 'grain-frost', 'fine-frost' ].includes( preset );
-
-			const onToggle = ( enabled ) => {
-				if ( enabled ) {
-					// Populate all attributes with the current preset defaults.
-					const defaults = PRESETS[ preset ] || PRESETS[ 'heavy-frost' ];
-					const { label, ...values } = defaults;
-					setAttributes( {
-						liquidGlassBlocksEnabled: true,
-						liquidGlassBlocksPreset: preset,
-						...values,
-					} );
-				} else {
-					setAttributes( { liquidGlassBlocksEnabled: false } );
-				}
+			const updateGlass = ( updates ) => {
+				setAttributes( {
+					liquidGlass: { ...glass, ...updates },
+				} );
 			};
 
-			const onPresetChange = ( newPreset ) => {
-				const presetData = PRESETS[ newPreset ];
-				if ( ! presetData ) {
-					return;
-				}
-				const { label, ...values } = presetData;
-				setAttributes( {
-					liquidGlassBlocksPreset: newPreset,
-					...values,
+			const onPresetChange = ( newEffect ) => {
+				const defaults = PRESET_DEFAULTS[ newEffect ] || {};
+				updateGlass( {
+					effect: newEffect,
+					...defaults,
 				} );
 			};
 
 			return (
-				<>
+				<Fragment>
 					<BlockEdit { ...props } />
 					<InspectorControls>
 						<PanelBody
 							title="Liquid Glass"
-							initialOpen={ liquidGlassBlocksEnabled }
+							initialOpen={ false }
 						>
 							<ToggleControl
-								__nextHasNoMarginBottom
-								label="Enable effect"
-								checked={ !! liquidGlassBlocksEnabled }
-								onChange={ onToggle }
+								label="Enable Liquid Glass"
+								checked={ enabled }
+								onChange={ ( value ) =>
+									updateGlass( { enable: value } )
+								}
 							/>
 
-							{ liquidGlassBlocksEnabled && (
+							{ enabled && (
 								<>
 									<Notice
 										status="info"
 										isDismissible={ false }
-										className="lgl-background-notice"
 									>
-										This effect requires content behind the
-										block to blur — a background image,
-										gradient, or another element underneath.
+										Use Liquid Glass inside a wrapper with
+										a background image. Make the block
+										background transparent and adjust
+										padding as needed.
 									</Notice>
 
 									<SelectControl
-										__nextHasNoMarginBottom
-										label="Preset"
-										value={ preset }
-										options={ PRESET_OPTIONS }
+										label="Effect Preset"
+										value={ effect }
+										options={ EFFECT_PRESETS }
 										onChange={ onPresetChange }
 									/>
 
-									<RangeControl
-										__nextHasNoMarginBottom
-										label="Blur"
-										value={ liquidGlassBlocksBlur ?? 24 }
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksBlur: v,
-											} )
-										}
-										min={ 0 }
-										max={ 40 }
-										step={ 1 }
-									/>
+									{ /* --- Tier 1 controls --- */ }
 
-									<p className="lgl-control-label">
-										Tint Color
-									</p>
-									<ColorPalette
-										colors={ colors }
-										value={ liquidGlassBlocksTintColor }
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksTintColor:
-													v || '#ffffff',
-											} )
-										}
-										clearable={ false }
-									/>
+									{ isTier1 && (
+										<>
+											<p
+												style={ {
+													marginBottom: '8px',
+													fontSize: '11px',
+													textTransform: 'uppercase',
+													fontWeight: 500,
+												} }
+											>
+												Background Color
+											</p>
+											<ColorPalette
+												colors={ colors }
+												value={
+													glass.backgroundColor || ''
+												}
+												onChange={ ( value ) =>
+													updateGlass( {
+														backgroundColor:
+															value || '',
+													} )
+												}
+												enableAlpha
+											/>
+										</>
+									) }
 
-									<RangeControl
-										__nextHasNoMarginBottom
-										label="Tint Opacity"
-										value={ liquidGlassBlocksTintOpacity ?? 25 }
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksTintOpacity: v,
-											} )
-										}
-										min={ 0 }
-										max={ 100 }
-										step={ 1 }
-									/>
-
-									{ isGlassFrost && (
+									{ isTier1 && (
 										<RangeControl
-											__nextHasNoMarginBottom
-											label="Saturation"
+											label="Backdrop Blur"
 											value={
-												liquidGlassBlocksSaturation ?? 1
+												glass.backdropFilter ?? 24
 											}
-											onChange={ ( v ) =>
-												setAttributes( {
-													liquidGlassBlocksSaturation: v,
+											onChange={ ( value ) =>
+												updateGlass( {
+													backdropFilter: value,
 												} )
 											}
 											min={ 0 }
-											max={ 3 }
+											max={ 50 }
+											step={ 1 }
+										/>
+									) }
+
+									{ isSoftMist && (
+										<RangeControl
+											label="Brightness"
+											value={ glass.brightness ?? 1 }
+											onChange={ ( value ) =>
+												updateGlass( {
+													brightness: value,
+												} )
+											}
+											min={ 0 }
+											max={ 5 }
 											step={ 0.1 }
 										/>
 									) }
 
-									<RangeControl
-										__nextHasNoMarginBottom
-										label="Border Width"
-										value={
-											liquidGlassBlocksBorderWidth ?? 1
-										}
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksBorderWidth: v,
-											} )
-										}
-										min={ 0 }
-										max={ 3 }
-										step={ 1 }
-									/>
+									{ /* --- Tier 2 controls --- */ }
 
-									<RangeControl
-										__nextHasNoMarginBottom
-										label="Border Radius"
-										value={
-											liquidGlassBlocksBorderRadius ?? 0
-										}
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksBorderRadius: v,
-											} )
-										}
-										min={ 0 }
-										max={ 50 }
-										step={ 1 }
-									/>
+									{ isTier2 && (
+										<RangeControl
+											label="Refraction"
+											value={
+												glass.distortionScale ?? 30
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													distortionScale: value,
+												} )
+											}
+											min={ 0 }
+											max={ 100 }
+											step={ 1 }
+										/>
+									) }
 
-									<ToggleControl
-										__nextHasNoMarginBottom
-										label="Shadow"
-										checked={ liquidGlassBlocksShadow !== false }
-										onChange={ ( v ) =>
-											setAttributes( {
-												liquidGlassBlocksShadow: v,
-											} )
-										}
-									/>
+									{ isTier2 && (
+										<RangeControl
+											label="Noise Frequency"
+											value={
+												glass.noiseFrequency ?? 0.02
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													noiseFrequency: value,
+												} )
+											}
+											min={ 0.005 }
+											max={ 0.1 }
+											step={ 0.005 }
+										/>
+									) }
 
-									{ isNoise && (
+									{ isTier2 && (
+										<RangeControl
+											label="Noise Detail"
+											value={
+												glass.noiseOctaves ?? 2
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													noiseOctaves: value,
+												} )
+											}
+											min={ 1 }
+											max={ 5 }
+											step={ 1 }
+										/>
+									) }
+
+									{ isTier2 && (
+										<RangeControl
+											label="Smoothing"
+											value={
+												glass.noiseSmoothing ?? 0
+											}
+											onChange={ ( value ) =>
+												updateGlass( {
+													noiseSmoothing: value,
+												} )
+											}
+											min={ 0 }
+											max={ 2 }
+											step={ 0.01 }
+										/>
+									) }
+
+									{ isTier2 && (
+										<RangeControl
+											label="Depth"
+											value={ glass.tier2Blur ?? 5 }
+											onChange={ ( value ) =>
+												updateGlass( {
+													tier2Blur: value,
+												} )
+											}
+											min={ 1 }
+											max={ 20 }
+											step={ 1 }
+										/>
+									) }
+
+									{ isTier2 && (
 										<>
-											<RangeControl
-												__nextHasNoMarginBottom
-												label="Noise Intensity"
-												value={
-													liquidGlassBlocksNoiseIntensity ??
-													50
-												}
-												onChange={ ( v ) =>
-													setAttributes( {
-														liquidGlassBlocksNoiseIntensity:
-															v,
+											<p
+												style={ {
+													marginBottom: '8px',
+													fontSize: '11px',
+													textTransform: 'uppercase',
+													fontWeight: 500,
+												} }
+											>
+												Accent Color
+											</p>
+											<ColorPalette
+												colors={ colors }
+												value={ glass.accent || '' }
+												onChange={ ( value ) =>
+													updateGlass( {
+														accent: value || '',
 													} )
 												}
-												min={ 0 }
-												max={ 100 }
-												step={ 1 }
+												enableAlpha
 											/>
-
-											</>
+										</>
 									) }
+
+									<SelectControl
+										label="Shadow Effect"
+										value={
+											glass.shadowEffect || 'none'
+										}
+										options={ SHADOW_OPTIONS }
+										onChange={ ( value ) =>
+											updateGlass( {
+												shadowEffect: value,
+											} )
+										}
+									/>
 								</>
 							) }
 						</PanelBody>
 					</InspectorControls>
-				</>
+				</Fragment>
 			);
 		};
 	},
-	'liquidGlassBlocksWithInspectorControls'
+	'withLiquidGlassInspectorControls'
 );

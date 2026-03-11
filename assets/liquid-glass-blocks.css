@@ -1,183 +1,95 @@
 /**
- * Liquid Glass Blocks — Glassmorphism stylesheet.
+ * Liquid Glass Blocks — shared stylesheet (editor + frontend).
  *
- * Shared between the iframed editor canvas and the frontend.
- * All values are driven by CSS custom properties injected as inline
- * styles — no hardcoded effect values live here.
+ * Tier 1: CSS-only effects (backdrop-filter on ::before)
+ * Tier 2: SVG displacement effects (filter on ::before)
+ * Shadows: Independent of glass effect
  */
 
-/* ----------------------------------------------------------------
-   Per-preset tuning — CSS-only custom properties
-   ---------------------------------------------------------------- */
-[data-lgl-effect="heavy-frost"] {
-	--lgl-brightness: 1.12;
-	--lgl-highlight: 0.45;
-	--lgl-highlight-end: 0.08;
-	--lgl-edge-light: 0.6;
-	--lgl-border-alpha: 0.5;
-	--lgl-inner-glow: 0.25;
-}
+/* ==========================================================================
+   Tier 1 — Heavy Frost, Soft Mist
+   ========================================================================== */
 
-[data-lgl-effect="soft-mist"] {
-	--lgl-brightness: 1.18;
-	--lgl-highlight: 0.35;
-	--lgl-highlight-end: 0.05;
-	--lgl-edge-light: 0.4;
-	--lgl-border-alpha: 0.4;
-	--lgl-inner-glow: 0.2;
-}
-
-[data-lgl-effect="glass-frost"] {
-	--lgl-brightness: 1.25;
-	--lgl-highlight: 0.55;
-	--lgl-highlight-end: 0.1;
-	--lgl-edge-light: 0.7;
-	--lgl-border-alpha: 0.6;
-	--lgl-inner-glow: 0.3;
-}
-
-[data-lgl-effect="light-frost"] {
-	--lgl-brightness: 1.15;
-	--lgl-highlight: 0.3;
-	--lgl-highlight-end: 0.04;
-	--lgl-edge-light: 0.35;
-	--lgl-border-alpha: 0.35;
-	--lgl-inner-glow: 0.15;
-}
-
-[data-lgl-effect="grain-frost"] {
-	--lgl-brightness: 1.1;
-	--lgl-highlight: 0.35;
-	--lgl-highlight-end: 0.06;
-	--lgl-edge-light: 0.5;
-	--lgl-border-alpha: 0.45;
-	--lgl-inner-glow: 0.2;
-}
-
-[data-lgl-effect="fine-frost"] {
-	--lgl-brightness: 1.14;
-	--lgl-highlight: 0.3;
-	--lgl-highlight-end: 0.05;
-	--lgl-edge-light: 0.45;
-	--lgl-border-alpha: 0.4;
-	--lgl-inner-glow: 0.18;
-}
-
-/* ----------------------------------------------------------------
-   Base: positioning context + depth shadow on the parent
-   ---------------------------------------------------------------- */
-[data-lgl-effect] {
+.lgl-effect-heavy-frost,
+.lgl-effect-soft-mist {
 	position: relative;
 	overflow: hidden;
-	isolation: isolate;
-	border-radius: var(--lgl-border-radius, 0px);
-	box-shadow:
-		0 8px 32px rgba(31, 38, 135, calc(0.25 * var(--lgl-shadow-opacity, 1))),
-		0 2px 8px rgba(0, 0, 0, calc(0.15 * var(--lgl-shadow-opacity, 1)));
+	border-radius: var(--lgl-border-radius, 24px);
+	transform: translateZ(0);
 }
 
-/* ----------------------------------------------------------------
-   Glass layer (::before)
-   Backdrop blur + brightness + tinted overlay + specular highlights
-   + inset border (box-shadow) + edge light + inner glow.
-   ---------------------------------------------------------------- */
-[data-lgl-effect]::before {
+.lgl-effect-heavy-frost::before,
+.lgl-effect-soft-mist::before {
 	content: "";
 	position: absolute;
 	inset: 0;
-	z-index: 0;
-	pointer-events: none;
-	border-radius: inherit;
-
-	backdrop-filter:
-		blur( var(--lgl-blur, 16px) )
-		saturate( var(--lgl-saturation, 1) )
-		brightness( var(--lgl-brightness, 1.1) );
-	-webkit-backdrop-filter:
-		blur( var(--lgl-blur, 16px) )
-		saturate( var(--lgl-saturation, 1) )
-		brightness( var(--lgl-brightness, 1.1) );
-
-	/* Specular highlight: primary radial + rim light + counter-light + base tint */
-	background:
-		radial-gradient(
-			ellipse 70% 40% at 25% 15%,
-			rgba(255, 255, 255, var(--lgl-highlight, 0.3)) 0%,
-			rgba(255, 255, 255, var(--lgl-highlight-end, 0.05)) 55%,
-			transparent 100%
-		),
-		linear-gradient(
-			135deg,
-			rgba(255, 255, 255, calc(var(--lgl-edge-light, 0.5) * 0.6)) 0%,
-			transparent 30%
-		),
-		linear-gradient(
-			315deg,
-			rgba(255, 255, 255, 0.03) 0%,
-			transparent 35%
-		),
-		var(--lgl-bg, rgba(255, 255, 255, 0.15));
-
-	/* Fresnel edge simulation: border glow + specular rim + bloom + depth + ambient */
-	box-shadow:
-		inset 0 0 0 var(--lgl-border-width, 1px)
-			rgba(255, 255, 255, var(--lgl-border-alpha, 0.4)),
-		inset 2px 2px 4px
-			rgba(255, 255, 255, var(--lgl-edge-light, 0.5)),
-		inset 8px 8px 24px
-			rgba(255, 255, 255, calc(var(--lgl-edge-light, 0.5) * 0.3)),
-		inset -1px -1px 0
-			rgba(0, 0, 0, 0.08),
-		inset 0 6px 32px
-			rgba(255, 255, 255, calc(var(--lgl-inner-glow, 0.2) * var(--lgl-shadow-opacity, 1)));
+	z-index: -1;
+	background: var(--lgl-bg);
+	-webkit-backdrop-filter: blur(var(--lgl-blur));
+	backdrop-filter: blur(var(--lgl-blur));
+	transform: translateZ(0);
 }
 
-/* ----------------------------------------------------------------
-   Noise layer (::after) — grain-frost & fine-frost only
-   SVG filters defined in the DOM; referenced here by ID.
-   ---------------------------------------------------------------- */
-[data-lgl-effect="grain-frost"]::after,
-[data-lgl-effect="fine-frost"]::after {
-	content: "";
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	z-index: 1;
-	pointer-events: none;
-	border-radius: inherit;
-
-	background: white;
-	mix-blend-mode: overlay;
-	opacity: var(--lgl-noise-opacity, 0.5);
+/* Soft Mist adds brightness to the backdrop-filter chain */
+.lgl-effect-soft-mist::before {
+	-webkit-backdrop-filter: blur(var(--lgl-blur)) brightness(var(--lgl-brightness, 1));
+	backdrop-filter: blur(var(--lgl-blur)) brightness(var(--lgl-brightness, 1));
 }
 
-[data-lgl-effect="grain-frost"]::after {
-	filter: url(#lgl-noise-grain);
-}
+/* ==========================================================================
+   Tier 2 — Light Frost, Grain Frost, Fine Frost (SVG displacement)
+   ========================================================================== */
 
-[data-lgl-effect="fine-frost"]::after {
-	filter: url(#lgl-noise-fine);
-}
-
-/* ----------------------------------------------------------------
-   Content stacking — keep block contents above the effect layers
-   ---------------------------------------------------------------- */
-[data-lgl-effect] > * {
+.lgl-effect-light-frost,
+.lgl-effect-grain-frost,
+.lgl-effect-fine-frost {
 	position: relative;
-	z-index: 2;
+	overflow: hidden;
+	border: solid 1px color-mix(in srgb, var(--lgl-accent, currentColor) 30%, transparent);
+	box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+	background: color-mix(in srgb, var(--lgl-accent, currentColor) 7.5%, transparent);
+	border-radius: var(--lgl-border-radius, 24px);
+	transform: translateZ(0);
 }
 
-/* ----------------------------------------------------------------
-   Editor-only: subtle spacing for the info notice
-   ---------------------------------------------------------------- */
-.lgl-background-notice {
-	margin-bottom: 16px;
+.lgl-effect-light-frost::before,
+.lgl-effect-grain-frost::before,
+.lgl-effect-fine-frost::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	-webkit-backdrop-filter: blur(var(--lgl-tier2-blur, 5px));
+	backdrop-filter: blur(var(--lgl-tier2-blur, 5px));
+	filter: var(--lgl-filter);
+	transform: translateZ(0);
 }
 
-.lgl-control-label {
-	font-size: 11px;
-	font-weight: 500;
-	text-transform: uppercase;
-	margin-bottom: 8px;
+/* ==========================================================================
+   Shadows — independent of glass effect
+   ========================================================================== */
+
+.lgl-shadow-drop {
+	box-shadow: -1px 9px 28px 2px rgba(0, 0, 0, 0.78);
+	border-radius: var(--lgl-border-radius, 24px);
+}
+
+.lgl-shadow-glow {
+	box-shadow: 0 0 8px 1px rgb(165 165 165 / 78%);
+	border-radius: var(--lgl-border-radius, 16px);
+}
+
+.lgl-shadow-soft {
+	box-shadow: 1px 1px 60px 0 #bebebe;
+	border-radius: var(--lgl-border-radius, 8px);
+}
+
+.lgl-shadow-frosted {
+	box-shadow:
+		inset 10px 10px 20px rgba(153, 192, 255, 0.1),
+		inset 2px 2px 5px rgba(195, 218, 255, 0.2),
+		inset -10px -10px 20px rgba(229, 253, 190, 0.1),
+		inset -2px -2px 30px rgba(247, 255, 226, 0.2);
+	border: 2px solid rgb(206, 206, 206);
+	border-radius: var(--lgl-border-radius, 24px);
 }
